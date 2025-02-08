@@ -4,9 +4,15 @@ import cron from "node-cron";
 import logger from "./modules/logger";
 import TelegramClient from './modules/telegramclient'
 import path from 'path';
-import { Context } from 'telegraf';
 import LogoClient from './modules/logoclient';
-import { MachineState } from './modules/machinestate';
+import { MachineStateHandler, MachineState, stateText } from './modules/machinestate';
+import { Context } from 'telegraf';
+import { log } from 'console';
+
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//Init
 
 // Load environment variables from .env file
 dotenv.config();
@@ -20,7 +26,31 @@ const logoClient = new LogoClient({
     urlLogin:process.env.LOGO_URL || ""
 })
 
+const machineStateHandler = new MachineStateHandler(parseInt(process.env.MINOKTIME || "1"))
 
+
+
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//General functions
+
+function broadcast(){
+    telegramClient.sendMessage(machineStateHandler.toString())
+}
+
+
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//Events
+machineStateHandler.on("machineStateOK", (state: MachineState) => broadcast())
+machineStateHandler.on("machineStateNOK", (state: MachineState) => broadcast())
+telegramClient.on("status", (ctx: Context) => ctx.reply(machineStateHandler.toString()))
+
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
 
 
 async function runProcess() {
@@ -30,7 +60,7 @@ async function runProcess() {
         // Open the page and perform login (either in dev mode or normal mode)
         await logoClient.openPage();
 
-        if (process.env.MODE == "PRODUCTION") {
+        if (process.env.MODE == "production") {
             await logoClient.login();
         } else {
             await logoClient.page?.goto("http://localhost:3636/BM/LOGO!%20BM.html", { waitUntil: 'load' });
@@ -40,17 +70,21 @@ async function runProcess() {
         const result: MachineState = await logoClient.parsePageForConditions();
         logger.info("result from page:");
         logger.info(JSON.stringify(result));
-        //machineState.updateState(result);
-        //telegramClient.sendMessage(JSON.stringify(result))
+        machineStateHandler.update(result)
         logger.info("Puppeteer process completed");
 
     } catch (error: any) {
         // Handle any errors during the process
         logger.error("Puppeteer process failed - Anlage kann nicht ausgewertet werden");
         logger.error(error.message);
+        machineStateHandler.update({
+            machineOk: false,
+            state: stateText.NOK,
+            lastOk: new Date(),
+            lastNOK: new Date(),
+            power: 0
+        })
 
-        // Fallback to a default result in case of failure
-        //machineState.updateState(logoClient.getResultObject(new Date(), "Anlage kann nicht ausgewertet werden", 0.0));
     } finally {
         // Ensure the browser is closed at the end of the process
         await logoClient.close();
@@ -62,11 +96,21 @@ async function runProcess() {
 
 
 
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//Schedule
 
 
+
+// Create the cron expression dynamically
+const cronExpression = `*/${process.env.POLLTIME || 3 } * * * *`;
 
 runProcess()
+.finally(() => {
+    logger.info("Started scheduler")
+    const job = cron.schedule(cronExpression, () => {
+        runProcess()
+    });
+})
 
-setInterval(() => {
-    runProcess()
-}, 120_000)
+

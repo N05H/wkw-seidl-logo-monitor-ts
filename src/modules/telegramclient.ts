@@ -54,12 +54,18 @@ class TelegramClient extends EventEmitter {
             this.emit('status', ctx); // Emit the 'status' event when /status is called
         });
 
+        this.bot.hears(/hallo|hello|servus|status/i, (ctx) => {
+            this.emit("status", ctx)
+        })
+
         this.registerCommand('help', (ctx: Context) => {
             ctx.reply(this.registeredCommands.join('\n'))
         });
 
+
+
         // Fallback message for all other cases
-        this.bot.hears(/.*/, (ctx) => ctx.reply('Hello, send a message!'));
+        this.bot.hears(/.*/, (ctx) => ctx.reply('Schicke /help um alle Kommandos zu sehen'));
     }
 
     private registerCommand(command: string, handler: (ctx: any) => void) {
