@@ -10,6 +10,7 @@ class TelegramClient extends EventEmitter {
     private chatIdFile: string;
     private chatIds: number[];
     private bot: Telegraf;
+    private registeredCommands: string[] = []; // Store registered commands
 
     constructor(token: string, chatIdFile: string) {
         super();
@@ -48,12 +49,22 @@ class TelegramClient extends EventEmitter {
         // Simple start message
         this.bot.start((ctx) => ctx.reply('Welcome to WKW Bot!'));
 
-        this.bot.command('status', (ctx: Context) => {
-            this.emit("status", ctx);  // Emit the 'status' event when /status command is called
+
+        this.registerCommand('status', (ctx: Context) => {
+            this.emit('status', ctx); // Emit the 'status' event when /status is called
+        });
+
+        this.registerCommand('help', (ctx: Context) => {
+            ctx.reply(this.registeredCommands.join('\n'))
         });
 
         // Fallback message for all other cases
         this.bot.hears(/.*/, (ctx) => ctx.reply('Hello, send a message!'));
+    }
+
+    private registerCommand(command: string, handler: (ctx: any) => void) {
+        this.registeredCommands.push(command); // Store the command
+        this.bot.command(command, handler); // Register the command
     }
 
 
@@ -91,6 +102,10 @@ class TelegramClient extends EventEmitter {
                     logger.error(`Failed to send message to chat ID: ${id}. Error: ${error}`);
                 });
         });
+    }
+
+    public getRegisteredCommands(): string[] {
+        return this.registeredCommands;
     }
 
 }

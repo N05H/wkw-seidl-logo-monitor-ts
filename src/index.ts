@@ -13,6 +13,8 @@ const token = process.env.TELEGRAM_TOKEN || "";
 const chatIdFile = path.join(__dirname, 'data/chatIds.json');
 const telegramClient = new TelegramClient(token, chatIdFile);
 
+
+
 telegramClient.on("status", (ctx: Context) => {
     ctx.reply("Status back")
 })
