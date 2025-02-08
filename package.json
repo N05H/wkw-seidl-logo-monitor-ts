@@ -1,0 +1,27 @@
+{
+  "name": "wkw-seidl-logo-monitor-ts",
+  "version": "1.0.0",
+  "description": "New version of wkw-seidl-logo-monitor but with typescript.\r Please read docs under [wkw-seidl-logo-monitor](https://github.com/N05H/wkw-seidl-logo-monitor.git).",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "@types/node-cron": "^3.0.11",
+    "@types/winston": "^2.4.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "node-cron": "^3.0.3",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  }
+}

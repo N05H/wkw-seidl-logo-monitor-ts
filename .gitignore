@@ -1,0 +1,72 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# TypeScript
+*.tsbuildinfo
+dist/
+out/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE and Editor folders
+.idea/
+.vscode/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependency directories
+jspm_packages/
+
+# Build directories
+build/
+*.tgz
+
+# Optional npm cache directory
+.npm/
+
+# Tye
+.tye/
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# SASS / SCSS cache (if used)
+.sass-cache/
+
+# Temporary files
+*.swp
+*.swo
+*.swn
+
+# JetBrains project files
+*.iml
+*.iws
+
+# VSCode settings
+.vscode/
+
+# macOS Finder directory
+._*
+
+# Windows Installer Files
+Thumbs.db
+
+# Debug logs
+debug/
