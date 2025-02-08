@@ -1,5 +1,5 @@
 
-import { Telegraf } from 'telegraf';
+import { Context, Telegraf } from 'telegraf';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import logger from "./logger";
@@ -43,8 +43,14 @@ class TelegramClient extends EventEmitter {
             return next();
         });
 
+
+
         // Simple start message
-        this.bot.start((ctx) => ctx.reply('Welcome to the bot!'));
+        this.bot.start((ctx) => ctx.reply('Welcome to WKW Bot!'));
+
+        this.bot.command('status', (ctx: Context) => {
+            this.emit("status", ctx);  // Emit the 'status' event when /status command is called
+        });
 
         // Fallback message for all other cases
         this.bot.hears(/.*/, (ctx) => ctx.reply('Hello, send a message!'));
