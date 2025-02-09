@@ -55,7 +55,7 @@ export class MachineStateHandler extends EventEmitter {
             //if time difference of new ok time to the last ok time > than the the configured min. ok time, reset error state
             if(diffMilli >= this.minOkTime){
                 this.okStateActive = true
-                this.emit('machineStateOK', this.state)
+                this.emit('machineStateOK', this)
                 logger.info("MachineStateOK Event")
             }
         }
@@ -66,7 +66,7 @@ export class MachineStateHandler extends EventEmitter {
             if(this.errorCount < this.errorCountLimit) return; //only alert when repeat on error limit is reached
             if(this.okStateActive == false) return;//when system is already in error state, dont alert again
             this.okStateActive = false
-            this.emit('machineStateNOK', this.state)
+            this.emit('machineStateNOK', this)
             logger.info("MachineStateNOK Event")
         }
     }
@@ -75,10 +75,10 @@ export class MachineStateHandler extends EventEmitter {
     
     toString(){
         const msg = `
-${this.state.state != stateText.OK ? "ACHTUNG!" : "---"}\n
-OK: ${this.formatDate(this.state.lastOk)}\n
-Letzter Fehler: ${this.formatDate(this.state.lastNOK)}\n
-Leistung (kW): ${this.state.power}\n
+${this.state.state != stateText.OK ? "ACHTUNG!" : "---"}
+OK: ${this.formatDate(this.state.lastOk)}
+Letzter Fehler: ${this.formatDate(this.state.lastNOK)}
+Leistung (kW): ${this.state.power}
 Status: ${this.state.state.toString()}
         `
         return msg

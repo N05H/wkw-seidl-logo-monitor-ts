@@ -34,8 +34,8 @@ const machineStateHandler = new MachineStateHandler(parseInt(process.env.MINOKTI
 //------------------------------------------------------------------------------------------------
 //General functions
 
-function broadcast(){
-    telegramClient.sendMessage(machineStateHandler.toString())
+function broadcast(msh: MachineStateHandler){
+    telegramClient.sendMessage(msh.state.state.toString())
 }
 
 
@@ -43,8 +43,8 @@ function broadcast(){
 //------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------
 //Events
-machineStateHandler.on("machineStateOK", (state: MachineState) => broadcast())
-machineStateHandler.on("machineStateNOK", (state: MachineState) => broadcast())
+machineStateHandler.on("machineStateOK", (msh: MachineStateHandler) => broadcast(msh))
+machineStateHandler.on("machineStateNOK", (msh: MachineStateHandler) => broadcast(msh))
 telegramClient.on("status", (ctx: Context) => ctx.reply(machineStateHandler.toString()))
 
 
