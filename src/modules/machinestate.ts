@@ -29,6 +29,8 @@ export class MachineStateHandler extends EventEmitter {
 
     private minOkTime: number;
     private okStateActive: boolean = false;
+    private errorCount: number = 0;
+    errorCountLimit: number = 3;
 
     constructor(minOkTime: number){
         super();
@@ -45,7 +47,7 @@ export class MachineStateHandler extends EventEmitter {
 
         if(this.state.machineOk){
             this.state.lastOk = newState.lastOk
-
+            this.errorCount = 0
             //Still ok, nothing to do
             if(this.okStateActive == true) return;
 
@@ -54,13 +56,18 @@ export class MachineStateHandler extends EventEmitter {
             if(diffMilli >= this.minOkTime){
                 this.okStateActive = true
                 this.emit('machineStateOK', this.state)
+                logger.info("MachineStateOK Event")
             }
         }
         else{
             this.state.lastNOK = newState.lastNOK
-            if(this.okStateActive == false) return;
+            this.errorCount++;
+            logger.info(`Error count: ${this.errorCount}/${this.errorCountLimit}`)
+            if(this.errorCount < this.errorCountLimit) return; //only alert when repeat on error limit is reached
+            if(this.okStateActive == false) return;//when system is already in error state, dont alert again
             this.okStateActive = false
             this.emit('machineStateNOK', this.state)
+            logger.info("MachineStateNOK Event")
         }
     }
 

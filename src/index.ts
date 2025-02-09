@@ -7,7 +7,6 @@ import path from 'path';
 import LogoClient from './modules/logoclient';
 import { MachineStateHandler, MachineState, stateText } from './modules/machinestate';
 import { Context } from 'telegraf';
-import { log } from 'console';
 
 
 //------------------------------------------------------------------------------------------------
@@ -24,7 +23,7 @@ const logoClient = new LogoClient({
     headless: true,
     password: process.env.LOGO_PASSWORD || "",
     urlLogin:process.env.LOGO_URL || ""
-})
+}, parseInt(process.env.PUPTIMEOUT || "30000"))
 
 const machineStateHandler = new MachineStateHandler(parseInt(process.env.MINOKTIME || "1"))
 

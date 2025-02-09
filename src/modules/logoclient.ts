@@ -14,15 +14,17 @@ export interface LogoClientConfig {
 
 
 class LogoClient {
-    private config: LogoClientConfig;
-    private browser: Browser | null;
-    page: Page | null;
+    private config: LogoClientConfig
+    private browser: Browser | null
+    page: Page | null
+    private timeout: number
 
 
-    constructor(config: LogoClientConfig) {
+    constructor(config: LogoClientConfig, timeout: number = 30000) {
         this.config = config
         this.browser = null;
         this.page = null;
+        this.timeout = timeout
     }
 
 
@@ -49,6 +51,9 @@ class LogoClient {
             this.browser = browser;
             this.page = await browser.newPage();
 
+            this.page.setDefaultNavigationTimeout(this.timeout);
+            this.page.setDefaultTimeout(this.timeout);
+
             const { width, height } = await this.page.evaluate(() => ({
                 width: window.screen.availWidth,
                 height: window.screen.availHeight
@@ -56,11 +61,12 @@ class LogoClient {
 
             await this.page.setViewport({ width, height });
             await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36');
-
+            logger.info("Open page succeeded")
             return this;
         } catch (error: any) {
             logger.error('Error initializing Puppeteer: ' + error.message);
             if (this.browser) await this.close();
+            logger.info("Open page failed")
             throw error;
         }
     }
