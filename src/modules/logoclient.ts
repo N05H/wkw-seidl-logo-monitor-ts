@@ -119,6 +119,10 @@ class LogoClient {
     private async getNavBtnToBM(): Promise<ElementHandle | null> {
         logger.info("Puppeteer getNavBtnToBM");
         const navbarid = "desktopMenue";
+
+        //Wait for navbar being loaded for max. 15 secs before inspecting it
+        await this.page?.waitForSelector(`#${navbarid}`, { timeout: 15000 });
+        
         const elementHandle = await this.page?.$(`#${navbarid}`);
 
         if (!elementHandle) {
