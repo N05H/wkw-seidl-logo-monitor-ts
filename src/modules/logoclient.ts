@@ -2,7 +2,7 @@
 import puppeteer, { Page, Browser, ElementHandle, LaunchOptions } from 'puppeteer';
 import os from 'os';
 import logger from "./logger";
-import { MachineState, stateText } from './machinestate';
+import { MachinePerformance, MachineState, MachineStateText } from './machinestate';
 import { stat } from 'fs';
 
 
@@ -153,19 +153,20 @@ class LogoClient {
 
 
     // Parse page for conditions
-    async parsePageForConditions(): Promise<MachineState> {
+    async parsePageForConditions(): Promise<[MachineState, MachinePerformance]> {
         logger.info("Puppeteer parsePageForConditions");
         try {
             const currentMachineState: MachineState = {
-                machineOk: false,
                 state: await this.getStatus(),
                 lastOk: new Date(),
-                lastNOK: new Date(),
-                power: await this.getPower()
+                lastNOK: new Date()
             }
 
-            currentMachineState.machineOk = currentMachineState.power > 0.1;
-            return currentMachineState;
+            const currentMachinePerformance: MachinePerformance = {
+                lastMeasured: new Date(),
+                power: await this.getPower()
+            }
+            return [currentMachineState, currentMachinePerformance];
         } catch (error: any) {
             logger.error('Failed to parse page for conditions: ' + error.message);
             throw error;
@@ -175,7 +176,7 @@ class LogoClient {
 
 
     // Get Status
-    private async getStatus(): Promise<stateText> {
+    private async getStatus(): Promise<MachineStateText> {
         logger.info("Puppeteer getStatus");
         const wordsToCheck = ["Status", "Ein", "Anlage", "ist", "am", "Netz!"];
         
@@ -186,12 +187,12 @@ class LogoClient {
                 const div = document.querySelector('#show_screen');
                 const htmlContent = div?.innerHTML || '';
                 return words.every(word => htmlContent.includes(word)) ? stateText.OK : stateText.NOK
-            }, wordsToCheck, stateText);
+            }, wordsToCheck, MachineStateText);
 
-            return status || stateText.UNKNOWN;
+            return status || MachineStateText.UNKNOWN;
         } catch (err: any) {
             logger.error('Error getting status: ' + err.message);
-            return stateText.NOK
+            return MachineStateText.NOK
         }
     }
 
@@ -230,24 +231,6 @@ class LogoClient {
             }
         }
     }
-
-
-
-
-
-
-    // Helper method to create result object
-    private getResultObject(timestamp: Date, state: stateText, powerkW: number): MachineState {
-        logger.info("Puppeteer getResultObject");
-        return {
-            machineOk: powerkW > 0.1 && state == stateText.OK,
-            state: state,
-            lastOk: powerkW > 0.1 ? timestamp : new Date(0),  // Example logic for lastOk timestamp
-            lastNOK: powerkW <= 0.1 ? timestamp : new Date(0),  // Example logic for lastNOK timestamp
-            power: powerkW
-        };
-    }
-
 
 
 

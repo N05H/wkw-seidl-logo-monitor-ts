@@ -5,9 +5,9 @@ import logger from "./modules/logger";
 import TelegramClient from './modules/telegramclient'
 import path from 'path';
 import LogoClient from './modules/logoclient';
-import { MachineStateHandler, MachineState, stateText } from './modules/machinestate';
+import { MachineStateHandler, MachineState, MachineStateText } from './modules/machinestate';
 import { Context } from 'telegraf';
-
+import { Gpio } from './modules/gpio';
 
 //------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------
@@ -28,6 +28,33 @@ const logoClient = new LogoClient({
 const machineStateHandler = new MachineStateHandler(parseInt(process.env.MINOKTIME || "1"))
 
 
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//GPIO
+const errorRelayInput = new Gpio(4, 'in', 'both');
+
+errorRelayInput.watch((err: any, value: number) => {
+  if (err) {
+    console.error('GPIO error:', err);
+    return;
+  }
+
+  if (value === 0) {
+    //NOK state
+        machineStateHandler.updateState({
+            state: MachineStateText.NOK,
+            lastOk: new Date(),
+            lastNOK: new Date()
+        })
+  } else {
+    //OK state
+        machineStateHandler.updateState({
+            state: MachineStateText.OK,
+            lastOk: new Date(),
+            lastNOK: new Date()
+        })
+  }
+});
 
 
 //------------------------------------------------------------------------------------------------
@@ -62,27 +89,33 @@ async function runProcess() {
         if (process.env.MODE == "production") {
             await logoClient.login();
         } else {
-            await logoClient.page?.goto("http://localhost:3636/BM/LOGO!%20BM.html", { waitUntil: 'load' });
+            await logoClient.page?.goto("http://localhost:3636/BM/LOGO!%20BM.html", { waitUntil: 'load' })
         }
 
         await logoClient.gotoBM();
-        const result: MachineState = await logoClient.parsePageForConditions();
-        logger.info("result from page:");
-        logger.info(JSON.stringify(result));
-        machineStateHandler.update(result)
+        const [currentState, currentPerformance] = await logoClient.parsePageForConditions()
+        logger.info("state result from page:")
+        logger.info(JSON.stringify(currentState))
+        //removed updating state from parsing site due to timeouts - moving over to IO handling
+        //machineStateHandler.updateState(currentState)
+
+        logger.info("performance result from page:")
+        logger.info(JSON.stringify(currentPerformance))
+        machineStateHandler.updatePerformance(currentPerformance)
+
         logger.info("Puppeteer process completed");
 
     } catch (error: any) {
         // Handle any errors during the process
         logger.error("Puppeteer process failed - Anlage kann nicht ausgewertet werden");
         logger.error(error.message);
-        machineStateHandler.update({
-            machineOk: false,
-            state: stateText.NOK,
-            lastOk: new Date(),
-            lastNOK: new Date(),
-            power: 0
-        })
+        // machineStateHandler.update({
+        //     machineOk: false,
+        //     state: stateText.NOK,
+        //     lastOk: new Date(),
+        //     lastNOK: new Date(),
+        //     power: 0
+        // })
 
     } finally {
         // Ensure the browser is closed at the end of the process
@@ -113,3 +146,8 @@ runProcess()
 })
 
 
+
+process.on('SIGINT', () => {
+  errorRelayInput.unexport();
+  process.exit(0)
+});

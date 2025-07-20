@@ -2,72 +2,80 @@ import { EventEmitter } from "stream";
 import logger from "./logger";
 
 
-export enum stateText{
+export enum MachineStateText{
     OK = "Anlage OK",
     NOK = "Anlage Fehler",
     UNKNOWN = "Zustand nicht bekannt"
 }
 
 export interface MachineState{
-    machineOk : boolean
-    state : stateText,
+    state : MachineStateText,
     lastOk : Date,
-    lastNOK : Date,
-    power : number
+    lastNOK : Date
+}
+
+export interface MachinePerformance{
+    power: number,
+    lastMeasured: Date,
 }
 
 
 export class MachineStateHandler extends EventEmitter {
 
     state : MachineState = {
-        machineOk: false,
-        state: stateText.OK,
+        state: MachineStateText.OK,
         lastOk: new Date(),
         lastNOK: new Date(),
+    }
+
+    performance: MachinePerformance = {
+        lastMeasured: new Date(),
         power: 0
     }
 
     private minOkTime: number;
-    private okStateActive: boolean = false;
-    private errorCount: number = 0;
-    errorCountLimit: number = 3;
 
     constructor(minOkTime: number){
         super();
         this.minOkTime = minOkTime * 1000 * 60 //Convert to millseconds
     }
 
-    update(newState : MachineState){
-        logger.info("Updating state")
-        logger.info(newState.state.toString())
-        this.state.power = newState.power
-        this.state.state = newState.state
-        this.state.machineOk = newState.machineOk
+    updatePerformance(newPerformance: MachinePerformance){
+        logger.info("Update performance")
+        this.performance = newPerformance
+    }
 
+    updateState(newState : MachineState){
+        if (newState.state != this.state.state)
+            logger.info(`Updating state to ${newState.state.toString()}`)
 
-        if(this.state.machineOk){
+        if(newState.state == MachineStateText.OK){
             this.state.lastOk = newState.lastOk
-            this.errorCount = 0
+
             //Still ok, nothing to do
-            if(this.okStateActive == true) return;
+            if (this.state.state == MachineStateText.OK) return;
 
             const diffMilli = this.state.lastOk.getTime() - this.state.lastNOK.getTime()
             //if time difference of new ok time to the last ok time > than the the configured min. ok time, reset error state
             if(diffMilli >= this.minOkTime){
-                this.okStateActive = true
+                this.state.state = MachineStateText.OK;
                 this.emit('machineStateOK', this)
                 logger.info("MachineStateOK Event")
             }
         }
-        else{
+        else if(newState.state == MachineStateText.NOK){
             this.state.lastNOK = newState.lastNOK
-            this.errorCount++;
-            logger.info(`Error count: ${this.errorCount}/${this.errorCountLimit}`)
-            if(this.errorCount < this.errorCountLimit) return; //only alert when repeat on error limit is reached
-            if(this.okStateActive == false) return;//when system is already in error state, dont alert again
-            this.okStateActive = false
+            
+            //Still NOK, nothing to do
+            if (this.state.state == MachineStateText.NOK) return;
+
+            //Set state to NOK since not already
+            this.state.state = MachineStateText.NOK
             this.emit('machineStateNOK', this)
             logger.info("MachineStateNOK Event")
+        }
+        else if(newState.state == MachineStateText.UNKNOWN){
+            
         }
     }
 
@@ -75,10 +83,10 @@ export class MachineStateHandler extends EventEmitter {
     
     toString(){
         const msg = `
-${this.state.state != stateText.OK ? "ACHTUNG!" : "---"}
+${this.state.state != MachineStateText.OK ? "ACHTUNG!" : "---"}
 OK: ${this.formatDate(this.state.lastOk)}
 Letzter Fehler: ${this.formatDate(this.state.lastNOK)}
-Leistung (kW): ${this.state.power}
+Leistung (kW): ${this.performance.power}
 Status: ${this.state.state.toString()}
         `
         return msg
